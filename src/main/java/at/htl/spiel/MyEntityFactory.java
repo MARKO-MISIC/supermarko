@@ -17,9 +17,13 @@ public class MyEntityFactory implements EntityFactory {
 
     @Spawns("player")
     public Entity newPlayer(SpawnData data) {
-        // Wir nutzen ein rotes Rechteck als Platzhalter, damit wir sehen, ob er spawnt
+        // Wir nutzen das Bild aus assets/levels/
+        var view = texture("../levels/mario_and_items.png")
+                .subTexture(new javafx.geometry.Rectangle2D(0, 0, 18, 36));
+
         return entityBuilder(data)
-                .viewWithBBox(new Rectangle(30, 30, Color.RED))
+                .viewWithBBox(view)
+                .with(new com.almasb.fxgl.entity.components.CollidableComponent(true))
                 .build();
     }
 
