@@ -18,26 +18,23 @@ public class MyEntityFactory implements EntityFactory {
         return entityBuilder(data)
                 .viewWithBBox((Node) data.get("tile"))
                 .with(new CollidableComponent(true))
-                .with(new PhysicsComponent()) // Standardmäßig statisch
+                .with(new PhysicsComponent())
                 .build();
     }
 
     @Spawns("player")
     public Entity newPlayer(SpawnData data) {
-        // Ersten Mario 18x36 ausschneiden
-        var view = texture("mario_and_items.png")
-                .subTexture(new Rectangle2D(0, 0, 18, 36));
+        // Gehe aus textures raus und in levels rein
+        var view = texture("../levels/mario_and_items.png")
+                .subTexture(new javafx.geometry.Rectangle2D(0, 0, 18, 36));
 
         PhysicsComponent physics = new PhysicsComponent();
-        physics.setBodyType(BodyType.DYNAMIC);
-
-        // Falls Mario umkippt, fixen wir das später über das Body-Objekt.
-        // Für den ersten Test lassen wir es weg, um Fehler zu vermeiden.
+        physics.setBodyType(com.almasb.fxgl.physics.box2d.dynamics.BodyType.DYNAMIC);
 
         return entityBuilder(data)
                 .viewWithBBox(view)
                 .with(physics)
-                .with(new CollidableComponent(true))
+                .with(new com.almasb.fxgl.entity.components.CollidableComponent(true))
                 .build();
     }
 }

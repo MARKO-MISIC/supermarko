@@ -17,6 +17,8 @@ public class MarioLevel extends GameApplication {
         settings.setWidth(1280);
         settings.setHeight(720);
         settings.setTitle("HTL Mario Test");
+        settings.setVersion("1.0");
+        // Die rote Zeile mit setAssetRoot einfach LÖSCHEN!
     }
 
     @Override
@@ -38,13 +40,16 @@ public class MarioLevel extends GameApplication {
         getGameScene().setBackgroundColor(Color.LIGHTBLUE);
 
         try {
-            setLevelFromMap("level1.tmx");
+            // WICHTIG: FXGL sucht standardmäßig in assets/tiled/
+            // Mit "../" gehen wir einen Ordner hoch und dann in "levels"
+            setLevelFromMap("../levels/level1.tmx");
+
             player = getGameWorld().spawn("player");
 
             getGameScene().getViewport().setZoom(1.5);
-            // Nutze getAppWidth() / 2.0 statt getWidth()
             getGameScene().getViewport().bindToEntity(player, getAppWidth() / 2.0, getAppHeight() / 2.0);
             getGameScene().getViewport().setBounds(0, 0, 5000, 720);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
