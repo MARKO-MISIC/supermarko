@@ -3,7 +3,7 @@ package at.htl.spiel;
 import com.almasb.fxgl.app.GameApplication;
 import com.almasb.fxgl.app.GameSettings;
 import com.almasb.fxgl.entity.Entity;
-import com.almasb.fxgl.entity.SpawnData;
+import com.almasb.fxgl.input.UserAction;
 import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import java.util.List;
@@ -16,70 +16,95 @@ public class MarioLevel extends GameApplication {
     }
 
     private Entity player;
-    private double velocityY = 0;
-    private final double GRAVITY = 0.4;
-    private final double JUMP_FORCE = -10;
-    private final int WALK_SPEED = 5;
 
-    // Kamera-Einstellungen
+    // Physik-Werte (langsameres Fallen & Gehen wie gewünscht)
+    private double velocityY = 0;
+    private final double GRAVITY = 0.1;
+    private final double JUMP_FORCE = -4;
+    private final int WALK_SPEED = 2;
+
+    // Kamera-Einstellungen (langsameres Scrollen)
     private double cameraX = 0;
-    private double scrollSpeed = 1.5; // Mindestgeschwindigkeit der Kamera
+    private double scrollSpeed = 0.8;
     private boolean gameStarted = false;
 
     @Override
     protected void initSettings(GameSettings settings) {
         settings.setWidth(1280);
         settings.setHeight(720);
-        settings.setTitle("HTL Mario - Autoscroller Pro");
+        settings.setTitle("HTL Mario - Autoscroller & Animation");
+
+        // Fullscreen-Einstellungen
         settings.setFullScreenAllowed(true);
         settings.setFullScreenFromStart(true);
     }
 
     @Override
     protected void initInput() {
-        onKey(KeyCode.D, () -> {
-            if (player == null) return;
-            gameStarted = true;
-            player.translateX(WALK_SPEED);
-            if (isCollidingWithWall()) player.translateX(-WALK_SPEED);
-        });
-
-        onKey(KeyCode.A, () -> {
-            if (player == null) return;
-            // Verhindert, dass Mario links aus dem Sichtfeld läuft
-            if (player.getX() > getGameScene().getViewport().getX()) {
+        // Steuerung für RECHTS (D)
+        getInput().addAction(new UserAction("Move Right") {
+            @Override
+            protected void onAction() {
+                if (player == null) return;
                 gameStarted = true;
-                player.translateX(-WALK_SPEED);
-                if (isCollidingWithWall()) player.translateX(WALK_SPEED);
+                player.getComponent(PlayerComponent.class).moveRight();
+                player.translateX(WALK_SPEED);
+                if (isCollidingWithWall()) player.translateX(-WALK_SPEED);
             }
-        });
 
+            @Override
+            protected void onActionBegin() {
+                // Wird einmal beim Drücken aufgerufen (optional)
+            }
+
+            @Override
+            protected void onActionEnd() {
+                // DAS ERSETZT onKeyUp: Wird beim Loslassen aufgerufen
+                if (player != null) player.getComponent(PlayerComponent.class).stop();
+            }
+        }, KeyCode.D);
+
+        // Steuerung für LINKS (A)
+        getInput().addAction(new UserAction("Move Left") {
+            @Override
+            protected void onAction() {
+                if (player == null) return;
+                gameStarted = true;
+                player.getComponent(PlayerComponent.class).moveLeft();
+                if (player.getX() > getGameScene().getViewport().getX()) {
+                    player.translateX(-WALK_SPEED);
+                    if (isCollidingWithWall()) player.translateX(WALK_SPEED);
+                }
+            }
+
+            @Override
+            protected void onActionEnd() {
+                if (player != null) player.getComponent(PlayerComponent.class).stop();
+            }
+        }, KeyCode.A);
+
+        // Springen (W) kann so bleiben, da es kein onKeyUp nutzt
         onKeyDown(KeyCode.W, () -> {
             if (player != null && isOnGround()) {
                 gameStarted = true;
                 velocityY = JUMP_FORCE;
             }
         });
-
-        onKeyDown(KeyCode.F11, () -> {
-            var stage = getPrimaryStage();
-            stage.setFullScreen(!stage.isFullScreen());
-        });
     }
-
     @Override
     protected void initGame() {
         getGameWorld().addEntityFactory(new MyEntityFactory());
         getGameScene().setBackgroundColor(Color.LIGHTBLUE);
 
-        // Reset der Variablen für Neustart
         gameStarted = false;
         cameraX = 0;
 
         try {
+            // Lädt das Level aus Tiled (Pfad muss at.htl Struktur entsprechen)
             setLevelFromMap("../levels/level1.tmx");
             player = getGameWorld().spawn("player");
 
+            // Kamera-Setup (Zoom 2.0 für Retro-Look)
             getGameScene().getViewport().setZoom(2.0);
             getGameScene().getViewport().setX(0);
             getGameScene().getViewport().setBounds(0, 0, 10000, 720);
@@ -94,11 +119,10 @@ public class MarioLevel extends GameApplication {
         if (player == null) return;
 
         if (gameStarted) {
-            // 1. Kamera bewegt sich mindestens mit scrollSpeed
+            // 1. Konstantes Autoscrolling
             cameraX += scrollSpeed;
 
-            // 2. Wenn Mario die Bildschirmmitte überschreitet, zieht er die Kamera mit.
-            // (getAppWidth() / 4.0 entspricht der Mitte bei einem Zoom von 2.0)
+            // 2. Kamera zieht mit, wenn Mario schneller als die Kamera ist
             double threshold = getAppWidth() / 4.0;
             if (player.getX() > cameraX + threshold) {
                 cameraX = player.getX() - threshold;
@@ -106,13 +130,13 @@ public class MarioLevel extends GameApplication {
 
             getGameScene().getViewport().setX(cameraX);
 
-            // 3. Game Over Prüfung: Linker Bildschirmrand
+            // 3. Game Over: Mario fällt links aus dem Bild
             if (player.getX() < cameraX) {
                 gameOver();
             }
         }
 
-        // Physik-Logik
+        // Einfache Physik: Gravitation anwenden
         velocityY += GRAVITY;
         player.translateY(velocityY);
 
@@ -132,7 +156,6 @@ public class MarioLevel extends GameApplication {
         List<Entity> grounds = getGameWorld().getEntitiesByType(EntityType.GROUND);
         for (Entity g : grounds) {
             if (player.isColliding(g)) {
-                // Kleine Toleranz, damit Mario nicht im Boden stecken bleibt
                 if (player.getY() + player.getHeight() > g.getY() + 5) {
                     return true;
                 }

@@ -1,56 +1,86 @@
 package at.htl.spiel;
 
+import com.almasb.fxgl.core.math.FXGLMath;
 import com.almasb.fxgl.entity.component.Component;
 import com.almasb.fxgl.texture.AnimatedTexture;
 import com.almasb.fxgl.texture.AnimationChannel;
 import javafx.util.Duration;
+import static com.almasb.fxgl.dsl.FXGL.*;
 
 public class PlayerComponent extends Component {
 
-    private AnimatedTexture texture;
+    private final AnimatedTexture texture;
     private AnimationChannel animIdle, animWalk;
 
+    // frameOffset bestimmt, welche Zeile im Spritesheet genutzt wird
+    // 0 = Erste Zeile (Normaler Mario)
+    // 16 = Zweite Zeile (Andere Dimension / Weißer Mario)
+    private int frameOffset = 0;
+
     public PlayerComponent() {
-        // animIdle: Nutzt den ersten Frame (Index 0)
-        animIdle = new AnimationChannel(
-                com.almasb.fxgl.dsl.FXGL.image("../levels/mario_and_items.png"),
-                16, 18, 36, Duration.seconds(1), 0, 0);
-
-        // animWalk: Nutzt z.B. Frame 4 bis 6 für die Lauf-Animation
-        animWalk = new AnimationChannel(
-                com.almasb.fxgl.dsl.FXGL.image("../levels/mario_and_items.png"),
-                16, 18, 36, Duration.seconds(0.5), 4, 6);
-
+        // Initialisiere die Animationen beim Start
+        updateAnimationChannels();
         texture = new AnimatedTexture(animIdle);
+    }
+
+    /**
+     * Definiert die Bildbereiche basierend auf dem aktuellen frameOffset.
+     * Nutzt das Spritesheet mario_and_items.png mit 16 Spalten.
+     */
+    private void updateAnimationChannels() {
+        // Stehen: Nutzt das erste Bild der jeweiligen Zeile
+        animIdle = new AnimationChannel(
+                image("../levels/mario_and_items.png"),
+                16, 18, 36, Duration.seconds(1),
+                frameOffset + 0, frameOffset + 0
+        );
+
+        // Laufen: Nutzt Bilder 4 bis 6 der jeweiligen Zeile für die Bewegung
+        animWalk = new AnimationChannel(
+                image("../levels/mario_and_items.png"),
+                16, 18, 36, Duration.seconds(0.5),
+                frameOffset + 4, frameOffset + 6
+        );
     }
 
     @Override
     public void onAdded() {
-        // Fügt die animierte Textur dem Entity hinzu
+        // Fügt die Textur dem Entity-View hinzu
         entity.getViewComponent().addChild(texture);
     }
 
-    @Override
-    public void onUpdate(double tpf) {
-        // Wenn Mario sich nicht bewegt, idle zeigen
-        // (Wird über die Steuerung in MarioLevel getriggert)
-    }
-
     public void moveRight() {
-        getEntity().setScaleX(1); // Normal schauen
+        getEntity().setScaleX(1); // Normal ausrichten
         if (texture.getAnimationChannel() != animWalk) {
-            texture.loop(animWalk);
+            texture.loopNoOverride(animWalk);
         }
     }
 
     public void moveLeft() {
-        getEntity().setScaleX(-1); // Spiegeln
+        getEntity().setScaleX(-1); // Spiegeln für Linkslauf
         if (texture.getAnimationChannel() != animWalk) {
-            texture.loop(animWalk);
+            texture.loopNoOverride(animWalk);
         }
     }
 
     public void stop() {
-        texture.loop(animIdle);
+        if (texture.getAnimationChannel() != animIdle) {
+            texture.loopNoOverride(animIdle);
+        }
+    }
+
+    /**
+     * Wechselt zwischen der ersten und zweiten Zeile des Spritesheets.
+     */
+    public void changeDimension() {
+        frameOffset = (frameOffset == 0) ? 16 : 0;
+        updateAnimationChannels();
+
+        // Sofort die Textur aktualisieren, damit die Farbe wechselt
+        if (texture.getAnimationChannel() == animWalk) {
+            texture.loopNoOverride(animWalk);
+        } else {
+            texture.loopNoOverride(animIdle);
+        }
     }
 }
