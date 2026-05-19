@@ -17,7 +17,6 @@ public class MyEntityFactory implements EntityFactory {
     public Entity newGround(SpawnData data) {
         int w = data.get("width");
         int h = data.get("height");
-
         return entityBuilder(data)
                 .type(EntityType.GROUND)
                 .viewWithBBox(new Rectangle(w, h, Color.TRANSPARENT))
@@ -27,16 +26,23 @@ public class MyEntityFactory implements EntityFactory {
 
     @Spawns("player")
     public Entity newPlayer(SpawnData data) {
-        // Wir entfernen .viewWithBBox(view), da die PlayerComponent
-        // die AnimatedTexture selbst zur View hinzufügt.
-
         return entityBuilder(data)
                 .type(EntityType.PLAYER)
-                // Eine feste Hitbox definieren (18x36 ist die Sprite-Größe)
                 .bbox(new HitBox(new Point2D(0, 0), BoundingShape.box(18, 36)))
                 .with(new CollidableComponent(true))
                 .with(new IrremovableComponent())
-                .with(new PlayerComponent()) // Hier wird die Animation-Logik geladen
+                .with(new PlayerComponent())
+                .build();
+    }
+
+    @Spawns("pipe")
+    public Entity newPipe(SpawnData data) {
+        int w = data.get("width");
+        int h = data.get("height");
+        return entityBuilder(data)
+                .type(EntityType.PIPE)
+                .bbox(new HitBox(BoundingShape.box(w, h)))
+                .with(new CollidableComponent(true))
                 .build();
     }
 
