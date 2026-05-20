@@ -11,6 +11,7 @@ public class PlayerComponent extends Component {
     private AnimatedTexture texture;
     private AnimationChannel animIdle, animWalk;
     private int frameOffset = 0;
+    private boolean poweredUp = false;
 
     public PlayerComponent() {
         updateAnimationChannels();
@@ -34,6 +35,16 @@ public class PlayerComponent extends Component {
     @Override
     public void onAdded() {
         entity.getViewComponent().addChild(texture);
+    }
+
+    public void setPoweredUp(boolean active) {
+        this.poweredUp = active;
+        // Optisches Feedback: Marko wird während des Boosts leicht transparent
+        entity.getViewComponent().setOpacity(active ? 0.6 : 1.0);
+    }
+
+    public boolean isPoweredUp() {
+        return poweredUp;
     }
 
     public void moveRight() {
@@ -60,7 +71,6 @@ public class PlayerComponent extends Component {
         frameOffset = (frameOffset == 0) ? 16 : 0;
         updateAnimationChannels();
 
-        // Textur-Status beibehalten, aber Channel austauschen
         if (texture.getAnimationChannel() == animWalk) {
             texture.loopNoOverride(animWalk);
         } else {
