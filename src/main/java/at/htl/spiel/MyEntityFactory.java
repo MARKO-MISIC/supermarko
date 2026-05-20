@@ -46,6 +46,18 @@ public class MyEntityFactory implements EntityFactory {
                 .build();
     }
 
+    // Pilz: Hitbox 18x18, passend zur Sprite-Größe
+    @Spawns("mushroom")
+    public Entity newMushroom(SpawnData data) {
+        int type = data.hasKey("mushroomType") ? (int) data.get("mushroomType") : 0;
+        return entityBuilder(data)
+                .type(EntityType.MUSHROOM)
+                .bbox(new HitBox(new Point2D(0, 0), BoundingShape.box(18, 18)))
+                .with(new CollidableComponent(true))
+                .with(new MushroomComponent(type))
+                .build();
+    }
+
     @Spawns("")
     public Entity empty(SpawnData data) {
         return entityBuilder(data).build();
